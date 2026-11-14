@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calcul prime 81 A II</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Prime 81A">
+<meta name="theme-color" content="#1c5fb8">
+<style>
+:root{--bg:#f2f5f8;--card:#fff;--ink:#16222e;--mute:#5d6b79;--line:#d9e0e7;--acc:#1c5fb8;--accbg:#e3edf9;--warn:#b4491b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f151c;--card:#18212b;--ink:#e8eef4;--mute:#93a1af;--line:#2a3643;--acc:#6aa7f0;--accbg:#1b2c42;--warn:#f0976b}}
+:root[data-theme="dark"]{--bg:#0f151c;--card:#18212b;--ink:#e8eef4;--mute:#93a1af;--line:#2a3643;--acc:#6aa7f0;--accbg:#1b2c42;--warn:#f0976b}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:8px 0 4px}
+p.sub{color:var(--mute);margin:0 0 16px;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:520px){.grid{grid-template-columns:1fr 1fr}}
+label{display:block;font-size:.8rem;color:var(--mute)}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:3px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.big{font-size:2.2rem;font-weight:700;color:var(--acc);letter-spacing:-.02em;line-height:1.1}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.res div span{display:block;font-size:.8rem;color:var(--mute)}
+.res div b{font-size:1.1rem}
+.warn{color:var(--warn);font-size:.85rem;margin-top:8px}
+.rot{display:grid;grid-template-columns:1.2fr 1.1fr .8fr auto;gap:8px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+.rot .out{grid-column:1/-1;font-size:.85rem;color:var(--mute)}
+.rot .out b{color:var(--ink)}
+@media (max-width:520px){.rot{grid-template-columns:1fr 1fr}}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+@media (prefers-color-scheme:dark){button.p{color:#0f151c}}
+.x{padding:8px 10px}
+small{color:var(--mute);display:block;font-size:.78rem;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Exonération article 81 A II</h1>
+<p class="sub">Entrez vos rotations : l’appli calcule la prime de séjour exonérée et l’économie d’impôt estimée.</p>
+
+<div class="card">
+  <div class="grid">
+    <label>Valeur journalière (€)<input id="v" type="number" inputmode="decimal" placeholder="ex. 966"></label>
+    <label>Brut fiscal annuel (€)<input id="brut" type="number" inputmode="decimal" placeholder="ex. 250000"></label>
+    <label>Taux moyen d’imposition (%)<input id="tm" type="number" inputmode="decimal" placeholder="ex. 19,1"></label>
+  </div>
+</div>
+
+<div class="card">
+  <div style="color:var(--mute);font-size:.85rem">Prime de séjour exonérée</div>
+  <div class="big" id="exo">0 €</div>
+  <div class="res">
+    <div><span>Économie d’impôt estimée</span><b id="eco">0 €</b></div>
+    <div><span>Jours de mission</span><b id="jours">0</b></div>
+    <div><span>Prime de séjour brute</span><b id="prime">0 €</b></div>
+    <div><span>Plafond de 40 %</span><b id="plaf">0 €</b></div>
+  </div>
+  <div class="warn" id="warn"></div>
+</div>
+
+<div class="card">
+  <div id="list"></div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="p" id="add">Ajouter une rotation</button>
+    <button id="clear">Tout effacer</button>
+  </div>
+  <small>Temps de séjour = atterrissage à l’arrivée jusqu’au décollage au départ. Chaque tranche de 12 h débutée compte 0,5 jour (minimum 24 h). Aux seuils de 48 h, 72 h et 96 h, la tranche supérieure est appliquée : à confirmer auprès de la gestion PN. Le montant est brut : il faut en déduire les charges sociales déductibles pour obtenir le net fiscal exonérable. L’économie d’impôt est une estimation : exonération × taux moyen.</small>
+</div>
+</main>
+
+<script>
+var ZONES={AME:["Amérique du Nord, Mexique",[90,110,130,150]],CSA:["Amérique centrale et du Sud",[100,120,140,160]],AFR:["Afrique",[120,140,160,180]],MGI:["Inde, Golfe, Moyen-Orient",[100,120,140,160]],APC:["Asie",[100,120,140,160]],PAC:["Pacifique",[160,160,160,180]],COI:["Caraïbes, océan Indien",[90,110,130,150]],EUR:["Europe hors France",[40,40,50,60]]};
+var rots=[];
+var $=function(i){return document.getElementById(i)};
+var eur=function(n){return Math.round(n).toLocaleString("fr-FR")+" €"};
+var num=function(n){return (Math.round(n*100)/100).toString().replace(".",",")};
+try{var s=JSON.parse(localStorage.getItem("a81"));if(s){rots=s.r;$("v").value=s.v;$("brut").value=s.b;$("tm").value=s.t}}catch(e){}
+
+function calc(r,cum){
+  var h=+r.h||0; if(h<24) return{d:0,t:0};
+  var d=Math.ceil(h/12-1e-9)*0.5;
+  var i=h>=96?3:h>=72?2:h>=48?1:0;
+  var t=ZONES[r.z][1][i];
+  var room=Math.max(0,70-cum); if(d>room) d=room;
+  return{d:d,t:t};
+}
+function render(){
+  var V=+$("v").value||0,B=+$("brut").value||0,TM=(+$("tm").value||0)/100;
+  var cum=0,prime=0,html="",pts=0;
+  rots.forEach(function(r,k){
+    var c=calc(r,cum); cum+=c.d; var p=c.d*c.t/100*V; prime+=p;
+    var opts=Object.keys(ZONES).map(function(z){return '<option value="'+z+'"'+(z===r.z?" selected":"")+'>'+ZONES[z][0]+'</option>'}).join("");
+    html+='<div class="rot"><label>Escale<input data-k="'+k+'" data-f="c" value="'+(r.c||"").replace(/"/g,"&quot;")+'"></label>'
+    +'<label>Zone<select data-k="'+k+'" data-f="z">'+opts+'</select></label>'
+    +'<label>Heures<input data-k="'+k+'" data-f="h" type="number" inputmode="decimal" value="'+r.h+'"></label>'
+    +'<button class="x" data-del="'+k+'" aria-label="Supprimer la rotation">✕</button>'
+    +'<div class="out">'+(c.d?num(c.d)+' j × '+c.t+' % = <b>'+eur(p)+'</b> de prime':'Moins de 24 h : pas de prime')+'</div></div>';
+  });
+  var act=document.activeElement,key=act&&act.dataset?act.dataset.k+act.dataset.f:null,pos=act&&act.selectionStart;
+  $("list").innerHTML=html||'<p style="color:var(--mute)">Aucune rotation. Ajoutez-en une pour commencer.</p>';
+  if(key){var e=document.querySelector('[data-k="'+key.slice(0,-1)+'"][data-f="'+key.slice(-1)+'"]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(x){}}}
+  var plaf=0.4*(B-prime), exo=cum>=10?Math.min(prime,Math.max(0,plaf)):0;
+  $("exo").textContent=eur(exo);$("eco").textContent=eur(exo*TM);$("jours").textContent=num(cum);
+  $("prime").textContent=eur(prime);$("plaf").textContent=eur(Math.max(0,plaf));
+  var w=[];
+  if(cum<10) w.push("Moins de 10 jours de mission : aucune exonération.");
+  if(cum>=70) w.push("Le plafond de 70 jours est atteint : les jours suivants ne comptent plus.");
+  if(prime>plaf&&cum>=10) w.push("La prime dépasse le plafond de 40 % : l’exonération est limitée.");
+  $("warn").textContent=w.join(" ");
+  try{localStorage.setItem("a81",JSON.stringify({r:rots,v:V,b:B,t:$("tm").value}))}catch(e){}
+}
+$("list").addEventListener("input",function(e){var d=e.target.dataset;if(d.f){rots[d.k][d.f]=d.f==="h"?e.target.value:e.target.value;render()}});
+$("list").addEventListener("change",function(e){var d=e.target.dataset;if(d.f==="z"){rots[d.k].z=e.target.value;render()}});
+$("list").addEventListener("click",function(e){var k=e.target.dataset.del;if(k!==undefined){rots.splice(+k,1);render()}});
+$("add").onclick=function(){rots.push({c:"",z:"AME",h:50});render()};
+$("clear").onclick=function(){rots=[];render()};
+["v","brut","tm"].forEach(function(i){$(i).addEventListener("input",render)});
+render();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}
+</script>
+</body>
+</html>
