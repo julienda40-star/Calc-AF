@@ -77,15 +77,16 @@ small{color:var(--mute);display:block;font-size:.78rem;margin-top:10px}
 </main>
 
 <script>
-var ZONES={AME:["Amérique du Nord, Mexique",[90,110,130,150]],CSA:["Amérique centrale et du Sud",[100,120,140,160]],AFR:["Afrique",[120,140,160,180]],MGI:["Inde, Golfe, Moyen-Orient",[100,120,140,160]],APC:["Asie",[100,120,140,160]],PAC:["Pacifique",[160,160,160,180]],COI:["Caraïbes, océan Indien",[90,110,130,150]],EUR:["Europe hors France",[40,40,50,60]]};
+var ZONES={AME:["Amérique du Nord, Mexique",[90,110,130,150]],CSA:["Amérique centrale et du Sud",[100,120,140,160]],AFR:["Afrique",[120,140,160,180]],MGI:["Inde, Golfe, Moyen-Orient",[100,120,140,160]],APC:["Asie",[100,120,140,160]],PAC:["Pacifique",[160,160,160,180]],COI:["Caraïbes, océan Indien",[90,110,130,150]],EUR:["Europe hors France",[40,40,50,60]],FRA:["France et DROM (non éligible)",[0,0,0,0]]};
 var rots=[];
+var IATA={};var _D={"AME": "ATL AUS BNA BOS BWI CLE CLT CMH CVG DAL DCA DEN DFW DTW EWR FLL HNL HOU IAD IAH IND JAX JFK LAS LAX LGA MCI MCO MDW MIA MKE MSP MSY OAK OGG ORD ORF PBI PDX PHL PHX PIT RDU RIC RSW SAN SAT SEA SFO SJC SLC SMF SNA STL TPA ANC BUF YUL YYZ YOW YQB YVR YYC YEG YHZ YWG YMQ YTO MEX CUN GDL MTY SJD PVR TIJ MID CUU FSP", "CSA": "GRU GIG BSB SSA REC FOR CNF POA CWB VCP EZE AEP COR MDZ SCL LIM CUZ BOG MDE CTG CLO UIO GYE VVI LPB CCS PTY SJO GUA ASU MVD PSY GEO PBM POS SAL TGU MGA BZE PAP", "AFR": "DSS ABJ DLA NSI LBV BZV FIH LAD LOS ABV ACC BKO OUA NIM NDJ BGF CKY LFW COO NKC CMN RAK RBA TNG AGA FEZ ALG ORN CZL TUN DJE MIR CAI HRG SSH LXR ADD NBO MBA DAR JRO ZNZ EBB KGL JNB CPT DUR WDH GBE HRE LUN MPM TNR NOS TIP KRT JIB SID RAI SSG LLW BJL FNA ROB ASM BJM MGQ HAH", "MGI": "DXB AUH SHJ DWC DOH BAH KWI MCT RUH JED DMM MED BOM DEL BLR MAA CCU HYD AMD COK GOI KHI LHE ISB CMB DAC KTM TLV AMM BEY IKA THR BGW EBL GYD ALA NQZ TAS KBL FRU DYU ASB", "APC": "PEK PKX PVG SHA CAN SZX CTU CKG HGH NKG XIY TAO WUH HKG MFM NRT HND KIX NGO ITM FUK CTS OKA ICN GMP PUS TPE BKK DMK HKT CNX SGN HAN DAD SIN KUL PEN CGK DPS SUB PNH REP VTE RGN ULN SYD MEL BNE PER ADL CBR AKL CHC WLG GUM POM BWN", "PAC": "MNL CEB NAN PPT NOU WLS VLI APW HIR ROR RAR BOB MOZ", "COI": "HAV VRA PUJ SDQ POP KIN MBJ NAS BGI UVF ANU GND AUA CUR SXM SBH SFG SJU STT STX GCM PLS BDA DOM SKB SVD MRU SEZ MLE AXA MNI BON EUX SAB", "EUR": "LHR LGW STN LTN MAN EDI GLA BHX DUB MAD BCN AGP PMI LIS OPO FCO MXP LIN VCE NAP ZRH GVA BSL FRA MUC BER HAM DUS CGN STR AMS BRU CPH ARN OSL HEL VIE PRG WAW KRK BUD ATH IST SAW LED SVO DME KEF TBS EVN MSQ KBP OTP SOF ZAG BEG RIX VNO TLL LUX MLA GOH", "FRA": "CDG ORY NCE LYS MRS TLS BOD NTE LIL SXB MPL BIA AJA PTP FDF CAY RUN DZA MCM"};Object.keys(_D).forEach(function(z){_D[z].split(' ').forEach(function(c){if(c)IATA[c]=z})});
 var $=function(i){return document.getElementById(i)};
 var eur=function(n){return Math.round(n).toLocaleString("fr-FR")+" €"};
 var num=function(n){return (Math.round(n*100)/100).toString().replace(".",",")};
 try{var s=JSON.parse(localStorage.getItem("a81"));if(s){rots=s.r;$("v").value=s.v;$("brut").value=s.b;$("tm").value=s.t}}catch(e){}
 
 function calc(r,cum){
-  var h=+r.h||0; if(h<24) return{d:0,t:0};
+  var h=+r.h||0; if(r.z==="FRA"||h<24) return{d:0,t:0};
   var d=Math.ceil(h/12-1e-9)*0.5;
   var i=h>=96?3:h>=72?2:h>=48?1:0;
   var t=ZONES[r.z][1][i];
@@ -98,11 +99,11 @@ function render(){
   rots.forEach(function(r,k){
     var c=calc(r,cum); cum+=c.d; var p=c.d*c.t/100*V; prime+=p;
     var opts=Object.keys(ZONES).map(function(z){return '<option value="'+z+'"'+(z===r.z?" selected":"")+'>'+ZONES[z][0]+'</option>'}).join("");
-    html+='<div class="rot"><label>Escale<input data-k="'+k+'" data-f="c" value="'+(r.c||"").replace(/"/g,"&quot;")+'"></label>'
+    html+='<div class="rot"><label>Escale (code IATA)<input data-k="'+k+'" data-f="c" maxlength="3" autocapitalize="characters" placeholder="LAX" style="text-transform:uppercase" value="'+(r.c||"").replace(/"/g,"&quot;")+'"></label>'
     +'<label>Zone<select data-k="'+k+'" data-f="z">'+opts+'</select></label>'
     +'<label>Heures<input data-k="'+k+'" data-f="h" type="number" inputmode="decimal" value="'+r.h+'"></label>'
     +'<button class="x" data-del="'+k+'" aria-label="Supprimer la rotation">✕</button>'
-    +'<div class="out">'+(c.d?num(c.d)+' j × '+c.t+' % = <b>'+eur(p)+'</b> de prime':'Moins de 24 h : pas de prime')+'</div></div>';
+    +'<div class="out">'+(r.c&&r.c.length===3&&!IATA[r.c]?'Code inconnu : choisissez la zone. ':'')+(r.z==="FRA"?'France ou DROM : pas de prime.':c.d?num(c.d)+' j × '+c.t+' % = <b>'+eur(p)+'</b> de prime':'Moins de 24 h : pas de prime')+'</div></div>';
   });
   var act=document.activeElement,key=act&&act.dataset?act.dataset.k+act.dataset.f:null,pos=act&&act.selectionStart;
   $("list").innerHTML=html||'<p style="color:var(--mute)">Aucune rotation. Ajoutez-en une pour commencer.</p>';
@@ -117,10 +118,10 @@ function render(){
   $("warn").textContent=w.join(" ");
   try{localStorage.setItem("a81",JSON.stringify({r:rots,v:V,b:B,t:$("tm").value}))}catch(e){}
 }
-$("list").addEventListener("input",function(e){var d=e.target.dataset;if(d.f){rots[d.k][d.f]=d.f==="h"?e.target.value:e.target.value;render()}});
+$("list").addEventListener("input",function(e){var d=e.target.dataset;if(d.f){var val=e.target.value;if(d.f==="c"){val=val.toUpperCase().slice(0,3);if(IATA[val])rots[d.k].z=IATA[val]}rots[d.k][d.f]=val;render()}});
 $("list").addEventListener("change",function(e){var d=e.target.dataset;if(d.f==="z"){rots[d.k].z=e.target.value;render()}});
 $("list").addEventListener("click",function(e){var k=e.target.dataset.del;if(k!==undefined){rots.splice(+k,1);render()}});
-$("add").onclick=function(){rots.push({c:"",z:"AME",h:50});render()};
+$("add").onclick=function(){rots.push({c:"",z:"AME",h:""});render()};
 $("clear").onclick=function(){rots=[];render()};
 ["v","brut","tm"].forEach(function(i){$(i).addEventListener("input",render)});
 render();
