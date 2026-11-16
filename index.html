@@ -38,6 +38,7 @@ button{font:inherit;border:1px solid var(--line);background:var(--card);color:va
 button.p{background:var(--acc);border-color:var(--acc);color:#fff}
 @media (prefers-color-scheme:dark){button.p{color:#0f151c}}
 .x{padding:8px 10px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}.cres{margin-top:12px;font-size:.95rem}.cres .d{font-size:1.5rem;font-weight:700;color:var(--acc)}.cres p{margin:4px 0}
 small{color:var(--mute);display:block;font-size:.78rem;margin-top:10px}
 </style>
 </head>
@@ -52,6 +53,19 @@ small{color:var(--mute);display:block;font-size:.78rem;margin-top:10px}
     <label>Brut fiscal annuel (€)<input id="brut" type="number" inputmode="decimal" placeholder="ex. 250000"></label>
     <label>Taux moyen d’imposition (%)<input id="tm" type="number" inputmode="decimal" placeholder="ex. 19,1"></label>
   </div>
+</div>
+
+<div class="card">
+  <b>Comparer deux rotations</b>
+  <div class="cmp">
+    <div><label>Escale A (IATA)<input id="ca" maxlength="3" autocapitalize="characters" placeholder="LAX" style="text-transform:uppercase"></label>
+    <label>Zone A<select id="za"></select></label>
+    <label>Heures A<input id="ha" type="number" inputmode="decimal" placeholder="47"></label></div>
+    <div><label>Escale B (IATA)<input id="cb" maxlength="3" autocapitalize="characters" placeholder="DXB" style="text-transform:uppercase"></label>
+    <label>Zone B<select id="zb"></select></label>
+    <label>Heures B<input id="hb" type="number" inputmode="decimal" placeholder="29"></label></div>
+  </div>
+  <div id="cres" class="cres"></div>
 </div>
 
 <div class="card">
@@ -72,7 +86,7 @@ small{color:var(--mute);display:block;font-size:.78rem;margin-top:10px}
     <button class="p" id="add">Ajouter une rotation</button>
     <button id="clear">Tout effacer</button>
   </div>
-  <small>Temps de séjour = atterrissage à l’arrivée jusqu’au décollage au départ. Chaque tranche de 12 h débutée compte 0,5 jour (minimum 24 h). Aux seuils de 48 h, 72 h et 96 h, la tranche supérieure est appliquée : à confirmer auprès de la gestion PN. Le montant est brut : il faut en déduire les charges sociales déductibles pour obtenir le net fiscal exonérable. L’économie d’impôt est une estimation : exonération × taux moyen.</small>
+  <small>Le seuil de 10 jours de mission par an n’est pas appliqué ici : il reste une condition de l’exonération sur l’année. Temps de séjour = atterrissage à l’arrivée jusqu’au décollage au départ. Chaque tranche de 12 h débutée compte 0,5 jour (minimum 24 h). Aux seuils de 48 h, 72 h et 96 h, la tranche supérieure est appliquée : à confirmer auprès de la gestion PN. Le montant est brut : il faut en déduire les charges sociales déductibles pour obtenir le net fiscal exonérable. L’économie d’impôt est une estimation : exonération × taux moyen.</small>
 </div>
 </main>
 
@@ -108,13 +122,12 @@ function render(){
   var act=document.activeElement,key=act&&act.dataset?act.dataset.k+act.dataset.f:null,pos=act&&act.selectionStart;
   $("list").innerHTML=html||'<p style="color:var(--mute)">Aucune rotation. Ajoutez-en une pour commencer.</p>';
   if(key){var e=document.querySelector('[data-k="'+key.slice(0,-1)+'"][data-f="'+key.slice(-1)+'"]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(x){}}}
-  var plaf=0.4*(B-prime), exo=cum>=10?Math.min(prime,Math.max(0,plaf)):0;
+  var plaf=0.4*(B-prime), exo=Math.min(prime,Math.max(0,plaf));
   $("exo").textContent=eur(exo);$("eco").textContent=eur(exo*TM);$("jours").textContent=num(cum);
   $("prime").textContent=eur(prime);$("plaf").textContent=eur(Math.max(0,plaf));
   var w=[];
-  if(cum<10) w.push("Moins de 10 jours de mission : aucune exonération.");
   if(cum>=70) w.push("Le plafond de 70 jours est atteint : les jours suivants ne comptent plus.");
-  if(prime>plaf&&cum>=10) w.push("La prime dépasse le plafond de 40 % : l’exonération est limitée.");
+  if(prime>plaf) w.push("La prime dépasse le plafond de 40 % : l’exonération est limitée.");
   $("warn").textContent=w.join(" ");
   try{localStorage.setItem("a81",JSON.stringify({r:rots,v:V,b:B,t:$("tm").value}))}catch(e){}
 }
@@ -125,6 +138,24 @@ $("add").onclick=function(){rots.push({c:"",z:"AME",h:""});render()};
 $("clear").onclick=function(){rots=[];render()};
 ["v","brut","tm"].forEach(function(i){$(i).addEventListener("input",render)});
 render();
+function cmpGet(x){return{c:$("c"+x).value,z:$("z"+x).value,h:$("h"+x).value}}
+function cmpRender(){
+  var V=+$("v").value||0,TM=(+$("tm").value||0)/100,A=cmpGet("a"),B=cmpGet("b"),cA=calc(A,0),cB=calc(B,0);
+  var pA=cA.d*cA.t/100*V,pB=cB.d*cB.t/100*V;
+  var L=function(c,p,r){return r.z==="FRA"?"France ou DROM : pas de prime":c.d?num(c.d)+" j × "+c.t+" % = <b>"+eur(p)+"</b>":"Moins de 24 h : pas de prime"};
+  var diff=pA-pB,out='<p>A : '+L(cA,pA,A)+'</p><p>B : '+L(cB,pB,B)+'</p>';
+  if(!V){out+='<p style="color:var(--warn)">Renseignez la valeur journalière pour obtenir les montants.</p>'}
+  else if(Math.abs(diff)<0.5){out+='<p class="d">Aucune différence</p>'}
+  else{out+='<p class="d">'+(diff>0?"A":"B")+' : +'+eur(Math.abs(diff))+'</p><p>de prime exonérée en plus'+(TM?', soit environ <b>'+eur(Math.abs(diff)*TM)+'</b> d’impôt en moins.':'.')+'</p>'}
+  $("cres").innerHTML=out;
+}
+["a","b"].forEach(function(x){
+  $("z"+x).innerHTML=Object.keys(ZONES).map(function(z){return '<option value="'+z+'">'+ZONES[z][0]+'</option>'}).join("");
+  $("c"+x).addEventListener("input",function(){var v=this.value.toUpperCase().slice(0,3);this.value=v;if(IATA[v])$("z"+x).value=IATA[v];cmpRender()});
+  $("z"+x).addEventListener("change",cmpRender);$("h"+x).addEventListener("input",cmpRender);
+});
+["v","tm"].forEach(function(i){$(i).addEventListener("input",cmpRender)});
+cmpRender();
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}
 </script>
 </body>
